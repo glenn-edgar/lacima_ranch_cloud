@@ -1,0 +1,7 @@
+1. finish rx cloud handler
+2. expand graph for local functions
+3. add in redis monitoring
+4. add in cloud monitoring
+5. add in process_control
+6. send new graph to remote
+
