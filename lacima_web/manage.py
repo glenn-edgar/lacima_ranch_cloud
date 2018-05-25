@@ -195,6 +195,7 @@ def remote_files_post(path):
 
 
 def get_rabbit_interface(  ):
+   
    rabbit_interface   =  RabbitMq_Client( rabbit_server, rabbit_port, rabbit_username, rabbit_password, rabbit_vhost, rabbit_queue )
    station_control.set_rpc( rabbit_interface, time_out )        
    return station_control

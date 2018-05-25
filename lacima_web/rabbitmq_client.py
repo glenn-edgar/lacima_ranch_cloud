@@ -2,12 +2,13 @@
 import pika
 import uuid
 import json
-import base64
 import os
 import time
 import redis
 import rabbitmq_client
+import zlib
 
+import msgpack
 
 
 
@@ -15,6 +16,8 @@ import rabbitmq_client
 class RabbitMq_Client(object):
     def __init__(self,server,port,username,password,vhost,queue):
          self.queue     = queue
+         self.queue = "_web_rpc_queue"
+         print("vhost",self.queue,vhost)
 
 
          credentials = pika.PlainCredentials( username, password )
@@ -28,13 +31,29 @@ class RabbitMq_Client(object):
          self.channel = self.connection.channel()
          result = self.channel.queue_declare(exclusive=True)
          self.callback_queue = result.method.queue
-         self.channel.basic_consume(self.on_response, no_ack=True,
+         
+         self.channel.basic_consume(self.on_response, no_ack=False,
                                    queue=self.callback_queue)
 
     def on_response(self, ch, method, props, body):
+        
+        print("madie it here body")
+        try:
+           body = msgpack.unpackb(body)
+        except Exception as e: 
+           print(str(e))      
+        print(type(body),len(body))
+        print(body.keys())
         if self.corr_id == props.correlation_id:
-            temp = base64.b64decode(body)
-            self.response = json.loads(temp)
+            temp_1 = body["results"]
+         
+ 
+            print("made it here 1")
+            
+            body["results"] = msgpack.unpackb(zlib.decompress(temp_1))
+            print("made it here 3")
+            self.response = body
+            print("self.respno",self.response)
             
      
 
@@ -42,7 +61,8 @@ class RabbitMq_Client(object):
       try:
         
         time_out = time_out 
-        input_data = base64.b64encode(json.dumps(data))
+        input_data = msgpack.packb(json.dumps(data))
+        
 
         self.response = None
         self.corr_id = str(uuid.uuid4())
@@ -53,9 +73,12 @@ class RabbitMq_Client(object):
                                          correlation_id = self.corr_id,
                                          ),
                                    body= input_data)
+        print("time_out",time_out,self.response)
         while self.response is None:
-              self.connection.process_data_events()
-              if self.response is None:
+                 print("time_out",time_out,self.response)
+
+                 self.connection.process_data_events()
+              
                  time_out = time_out -1
                  if time_out == 0:
                 
@@ -66,6 +89,7 @@ class RabbitMq_Client(object):
                  else:
                     time.sleep(.2)
         self.close()
+       
         return self.response
       except:
                      data = {}

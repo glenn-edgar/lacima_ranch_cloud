@@ -27,6 +27,7 @@ class Station_Control():
       data["path"]                             =  path  
       
       reply                                    =  self.rpc_interface.call(  data, self.time_out)
+      print("reply ",reply )
       if reply.has_key("results"):
             return [ True, reply["results" ] ]                 
       else:
@@ -69,6 +70,7 @@ class Station_Control():
        else:
          return_value = False
       except:
+         
          return_value = False
       return return_value
 
