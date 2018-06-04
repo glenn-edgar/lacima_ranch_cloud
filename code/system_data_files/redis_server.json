@@ -1,1 +1,20 @@
-{"mqtt_upload_topic": "REMOTES/UPLOAD/LaCima", "mqtt_download_topic": "CLOUD/DOWNLOAD/LaCima", "graph_db": 3, "port": 6379, "mqtt_server": "nano_data_center_demo", "redis_io_db": 4, "redis_file_db": 4, "mqtt_db": 7, "redis_backup_db": 6, "mqtt_topic": "REMOTES/#", "redis_table_db": 4, "local_node": "nano_data_center", "mqtt_cloud_server": "lacimaRanch.cloudapp.net", "mqtt_cloud_port": 8883, "mqtt_port": 8883, "redis_password_db": 5, "mqtt_cloud_db": 4, "host": "127.0.0.1", "site": "LaCima"}
+{
+"mqtt_upload_topic": "CLOUD/UPLOAD/", 
+"mqtt_download_topic": "REMOTES/UPLOAD/#", 
+"graph_db": 3, 
+"port": 6379, 
+"mqtt_server": "nano_data_center_demo", 
+"redis_io_db": 4, 
+"redis_file_db": 4, 
+"mqtt_db": 7, 
+"redis_backup_db": 6, 
+"mqtt_topic": "REMOTES/#", 
+"redis_table_db": 4, "local_node": 
+"nano_data_center", "mqtt_cloud_server": 
+"lacimaRanch.cloudapp.net", 
+"mqtt_cloud_port": 8883, 
+"mqtt_port": 8883, 
+"redis_password_db": 5, 
+"mqtt_cloud_db": 4, 
+"host": "127.0.0.1", 
+"site": "LaCima"}

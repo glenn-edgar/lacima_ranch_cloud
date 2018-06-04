@@ -85,9 +85,10 @@ class Cloud_TX_Handler(Send_Object):
        
 class Cloud_RX_Handler(object):
 
-   def __init__(self,redis_handle,*args):
-     
+   def __init__(self,redis_handle,redis_site_data,site_list,*args):    
       self.redis_handle = redis_handle
+      self.redis_site_data = redis_site_data
+      self.site_list = site_list
       self.data_handlers = {}
       self.data_handlers["DEL"] = self.delete
     
@@ -103,15 +104,24 @@ class Cloud_RX_Handler(object):
       self.file_path["APP"] =  "app_data_files/"
       self.file_path["SYS"] =  "system_data_files/"
       self.file_path["LIMIT"]  = "limit_data_files/"
- 
+      self.site_list = site_list
       
-   def unpack_remote_data( self, list_data):
-   
+   def unpack_remote_data( self,topic, list_data):
+      #
+      # Find Site
+      #  
+      #
+      topic_list = topic.split("/")
+      site = topic_list[-1]
+      print(site in self.site_list)
+      if site not in self.site_list:
+           return # unrecognized site 
+      
       for i_pack in list_data:
           
           i = msgpack.unpackb(i_pack, encoding='utf-8')
 
-          
+          i["SITE"] = site
           action = i["ACTION"]
          
           if action in self.data_handlers:
@@ -129,6 +139,7 @@ class Cloud_RX_Handler(object):
           return_value = True
        else:
           return_value = False
+       
        print(return_value,self.file_type)
        return return_value
 
@@ -150,7 +161,7 @@ class Cloud_RX_Handler(object):
           print(self.file_type,self.file_path, self.file_type in self.file_path)
           if self.file_type in self.file_path:
                
-               path = self.file_path[self.file_type]
+               path = self.file_path[self.file_type]+data["SITE"]+"/"
                file = data["field"]
                temp_data = msgpack.unpackb(data["data"], encoding='utf-8')
           

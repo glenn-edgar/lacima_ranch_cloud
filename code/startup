@@ -1,0 +1,10 @@
+#!/bin/bash
+#  python initialization scripts
+cd  /home/gedgar
+python3  passwords.py
+cd new_python/code
+python3  -m redis_support_py3.construct_graph_py3
+python3 -m redis_support_py3.create_file_directories_py3
+#python3 -m redis_support_py3.load_files_py3
+
+

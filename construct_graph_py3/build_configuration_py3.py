@@ -22,7 +22,8 @@ def basic_init(self):
    
 class Build_Configuration(object):
    def __init__( self, redis_site ):  
-       self.redis_handle = redis.StrictRedis( host = redis_site["host"] , port=redis_site["port"], db=redis_site["graph_db"] , decode_responses=True)
+       self.redis_handle = redis.StrictRedis( host = redis_site["host"] , 
+           port=redis_site["port"], db=redis_site["graph_db"]  )
        self.delete_all()
        self.keys = set()
        basic_init(self)
