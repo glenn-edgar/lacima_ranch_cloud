@@ -3,18 +3,20 @@
 "mqtt_download_topic": "REMOTES/UPLOAD/#", 
 "graph_db": 3, 
 "port": 6379, 
-"mqtt_server": "nano_data_center_demo", 
+"mqtt_server": "lacimaRanch.cloudapp.net", 
 "redis_io_db": 4, 
 "redis_file_db": 4, 
 "mqtt_db": 7, 
 "redis_backup_db": 6, 
 "mqtt_topic": "REMOTES/#", 
-"redis_table_db": 4, "local_node": 
-"nano_data_center", "mqtt_cloud_server": 
-"lacimaRanch.cloudapp.net", 
+"mqtt_upload_topic_base": "CLOUD/",
+"redis_table_db": 4,
+"local_node": "lacima_cloud", 
+"mqtt_cloud_server": "lacimaRanch.cloudapp.net", 
 "mqtt_cloud_port": 8883, 
 "mqtt_port": 8883, 
 "redis_password_db": 5, 
 "mqtt_cloud_db": 4, 
 "host": "127.0.0.1", 
-"site": "LaCima"}
+"site": "Cloud"
+}

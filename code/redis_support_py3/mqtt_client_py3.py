@@ -3,14 +3,16 @@ import paho.mqtt.client as mqtt
 import ssl
 import redis
 import time
+import os
 class MQTT_CLIENT(object):
 
-   def __init__(self,redis_site_data,server,port,user_name,password_key):
+   def __init__(self,redis_site_data,server,port,user_name,password_key,
+                     certfile,keyfile,cert_reqs):
        self.server = server
        self.port   = port
        self.redis_site_data = redis_site_data
        self.client = mqtt.Client(client_id="", clean_session=True, userdata=None,  transport="tcp")
-       self.client.tls_set(certfile= "/home/pi/mosquitto/certs/client.crt", keyfile= "/home/pi/mosquitto/certs/client.key", cert_reqs=ssl.CERT_NONE )
+       self.client.tls_set(certfile=certfile, keyfile = keyfile, cert_reqs =cert_reqs )
        
        redis_handle_pw = redis.StrictRedis(redis_site_data["host"], 
                                            redis_site_data["port"], 

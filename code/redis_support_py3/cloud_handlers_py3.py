@@ -22,16 +22,23 @@ class Send_Object(object):
        
    def length(self):
        return self.redis_handle.llen(self.transport_queue)
+   
+   def determine_site(self,key):
+       temp = key.split("[SITE:",maxsplit=1)[1]
+       temp = temp.split("]",maxsplit=1)[0]
+       return temp
+
        
-   def extract(self,maxlength = 20):
+   def extract(self):
        length = self.redis_handle.llen(self.transport_queue)
-       if length > maxlength:
-         length = maxlength
-       return_list = []
-       for i in range(0,length):
-           return_list.append(self.redis_handle.rpop(self.transport_queue))
-       return_value = msgpack.packb(return_list, use_bin_type = True)
-       return return_value
+       if length == 0:
+          return []
+       packed_data = self.redis_handle.rpop(self.transport_queue)
+       unpacked_data = msgpack.unpackb(packed_data, encoding='utf-8')
+       site = self.determine_site(unpacked_data["key"])
+       return [site,packed_data]
+
+ 
          
        
        
