@@ -18,6 +18,7 @@ import json
 import msgpack
 
 from  .construct_data_handlers_py3 import Redis_Hash_Dictionary
+from  .cloud_handlers_py3 import Cloud_TX_Handler
 from .graph_query_support_py3 import Query_Support
 from .find_sites_py3 import Find_Redis_Site_Data
 from .find_sites_py3 import Find_Sites
@@ -28,12 +29,12 @@ class BASIC_FILES( object ):
         self.site = site
   
         data = {}
-        data["forward"] = False
-  
+        data["forward"] = True
+        self.cloud_handler = Cloud_TX_Handler(redis_handle)
         self.redis_handle = redis_handle
         self.key = "[SITE:"+site+"][FILE:"+label+ "]"
         # Changes to cloud files do not automatically propagate to slaves
-        self.hash_driver = Redis_Hash_Dictionary(self.redis_handle,data,self.key,None)
+        self.hash_driver = Redis_Hash_Dictionary(self.redis_handle,data,self.key,self.cloud_handler)
 
     def file_directory(self):
         return self.hash_driver.hkeys()
@@ -82,8 +83,8 @@ if __name__ == "__main__":
                                     db=redis_site_data["redis_file_db"] )
    find_sites = Find_Sites(redis_site_data)
    sites = find_sites.determine_sites()
-
-  
+   cloud_handler_tx = Cloud_TX_Handler(redis_handle)
+   forward = {"forward":True}  
    
    #  construct sub directories for sites in each of the catagory directories
    for i in file_directories:
@@ -115,8 +116,8 @@ if __name__ == "__main__":
            
            # now load files into redis
            key = "[SITE:"+j+"][FILE:"+i[1]+"]"
-           redis_handle.delete(key)
            
+           old_fields = set(redis_handle.hkeys(key))
            for l in files:
                
                field_name = l.split(".")[0]
@@ -126,10 +127,18 @@ if __name__ == "__main__":
                file_handle.close()
                redis_site_data = json.loads(data)
                pack_data = msgpack.packb(data,use_bin_type = True )
-               redis_handle.hset(key,field_name,pack_data)
-               
+               if redis_handle.hget(key,field_name) != pack_data:
+                   redis_handle.hset(key,field_name,pack_data)
+                   cloud_handler_tx.hset(forward,key,field_name,pack_data)
 
-
+           new_fields = set(redis_handle.hkeys(key))
+           # remove old keys
+           keys_to_delete = list(old_fields - new_fields)
+           for i in keys_to_delete:
+               print("deleteing fields")
+               redis_handle.hdel(key,i)
+               cloud_handler_tx.hdel(key,i)
+           
 
 else:
    pass

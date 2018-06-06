@@ -76,11 +76,14 @@ class Redis_Hash_Dictionary( object ):
       
       
    def hset( self, field, data ):
-   
+     
       pack_data = msgpack.packb(data,use_bin_type = True )
+      if self.redis.hget(self.key)== data: # donot propagte identical values
+         return
       
       self.redis_handle.hset(self.key,field,pack_data)
       if self.cloud_handler != None:
+         
          self.cloud_handler.hset(self.data,self.key,field,pack_data)     
 
    def hmset(self,dictionary_table):
@@ -381,8 +384,6 @@ class Generate_Handlers(object):
        return self.redis_handle   
 
 
-
-
          
    def construct_hash(self,data):
          assert(data["type"] == "HASH")
@@ -431,7 +432,9 @@ class Generate_Handlers(object):
          assert(data["type"] ==  "RPC")
          key = self.package["namespace"]+"["+data["type"]+":"+data["name"] +"]"
          return RPC_Server(self.redis_handle,data,key )
-    
+
+
+'''    
 if __name__== "__main__":
        redis_handle = redis.StrictRedis( host = "localhost", port = 6379, db =10, decode_responses=True) # test_db
        print("starting hash test ************************************************")
@@ -513,7 +516,7 @@ if __name__== "__main__":
        print("******* ending stream reader list")
        
        
-
+'''
 
    
  
