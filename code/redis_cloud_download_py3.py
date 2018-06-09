@@ -45,7 +45,7 @@ class REDIS_CLOUD_SYNC(object):
        self.client.subscribe(self.redis_site_data["mqtt_download_topic"])
 
    def on_message(self, client, userdata, msg):
-       print(msg.topic+" "+str(msg.payload))
+       print(msg.topic+" " + str(zlib.crc32(msg.payload)))
        uncompressed_payload = zlib.decompress(msg.payload)
        action_list = msgpack.unpackb(uncompressed_payload, encoding='utf-8')
        

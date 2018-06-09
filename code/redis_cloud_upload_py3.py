@@ -8,7 +8,7 @@ import redis
 import time
 import copy
 import zlib
-#import hashlib
+import time
 
 
 
@@ -37,7 +37,7 @@ class Redis_Cloud_Upload(object):
                                             redis_site_data["port"], 
                                             db=redis_site_data["redis_io_db"] )
        self.state = "CONNECT"
-       self.cloud_tx_handler = Cloud_TX_Handler(self.redis_handle)
+       self.tx_handler = Cloud_TX_Handler(self.redis_handle)
        self.packet_data = None
        self.topic = redis_site_data["mqtt_upload_topic_base"]
        print("topic",self.topic)
@@ -53,31 +53,31 @@ class Redis_Cloud_Upload(object):
          self.state == "CONNECT"
       
    def do_monitor(self):
-       #print("*******************************monitor state*************")
-       if self.packet_data == None:
-           length = self.cloud_tx_handler.length()
-           if length == 0:
-              return
-           data = self.tx_handler.extract()
-           site = data[0]
-           self.packed_data = zlib.compress(self.packet_data[1])
+       while True:
+           print("*****************monitor state*************",time.time())
+           if self.packet_data == None:
+              length = self.tx_handler.length()
+              if length == 0:
+                  return
+              self.packet_data = self.tx_handler.extract()
+              site = self.packet_data[0]
+              self.packet_data[1] = zlib.compress(self.packet_data[1])
       
-       payload = copy.deepcopy(self.packet_data)
-       
-       return_value = self.mqtt_client.publish(self.topic+site,payload=payload,qos=2)
-      
-       print("sending packet len ",len(self.packet_data),zlib.crc32(self.packet_data))
-       if return_value[0] == True:
-           self.packet_data = None
-           return
-       else:
-         print("*********************************** bad publish **************")
-         self.mqtt_client.disconnect()
-         time.sleep(5)
-         self.mqtt_client = MQTT_CLIENT(self.redis_site_data,redis_site_data["mqtt_cloud_server"],redis_site_data["mqtt_cloud_port"],"remote","mosquitto_cloud")
-         self.state = "CONNECT"  
+           payload = copy.deepcopy(self.packet_data)
+           
+           return_value = self.mqtt_client.publish(self.topic+payload[0],payload=payload[1],qos=2)
+           
+           if return_value[0] == True:
+                self.packet_data = None
+           
+           else:
+              print("*********************************** bad publish **************")
+              self.mqtt_client.disconnect()
+              time.sleep(5)
+              self.mqtt_client = MQTT_CLIENT(self.redis_site_data,redis_site_data["mqtt_cloud_server"],redis_site_data["mqtt_cloud_port"],"remote","mosquitto_cloud")
+              self.state = "CONNECT"  
 
-         return # error lets try to reconnect         
+              return # error lets try to reconnect         
        
       
    def do_start(self):
@@ -86,7 +86,8 @@ class Redis_Cloud_Upload(object):
            self.do_connect()
         else:
            self.do_monitor()
-        time.sleep(2)
+           print("end monitor")
+        time.sleep(.5)
         
 if __name__ == "__main__":
    file_handle = open("system_data_files/redis_server.json",'r')

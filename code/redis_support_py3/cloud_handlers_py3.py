@@ -15,9 +15,8 @@ class Send_Object(object):
 
    def send(self,action, **kwargs):
        kwargs["ACTION"] = action
-       
-       print("Cloud TX -- action",kwargs)
-       self.redis_handle.lpush(self.transport_queue,kwargs )
+       kwargs_pack = msgpack.packb(kwargs, use_bin_type = True)       
+       self.redis_handle.lpush(self.transport_queue,kwargs_pack )
        self.redis_handle.ltrim(self.transport_queue, 0,self.queue_depth)
        
    def length(self):
@@ -34,6 +33,7 @@ class Send_Object(object):
        if length == 0:
           return []
        packed_data = self.redis_handle.rpop(self.transport_queue)
+       
        unpacked_data = msgpack.unpackb(packed_data, encoding='utf-8')
        site = self.determine_site(unpacked_data["key"])
        return [site,packed_data]
@@ -65,8 +65,8 @@ class Cloud_TX_Handler(Send_Object):
        if self.check_forwarding(forward_data):
            self.send("HSET",key=key,field=field,data = data )
        
-   def hdel(self,forward_dat,key,field):
-       if self.check_forwarding(forward_dat):
+   def hdel(self,forward_data,key,field):
+       if self.check_forwarding(forward_data):
            self.send("HDEL",key=key,field=field)
        
    def lpush(self,forward_data,depth, key, data):
@@ -130,7 +130,7 @@ class Cloud_RX_Handler(object):
 
           i["SITE"] = site
           action = i["ACTION"]
-         
+          print("download",i)
           if action in self.data_handlers:
               self.data_handlers[action](i)
           else:

@@ -8,7 +8,7 @@ class Construct_Redis_Monitoring(object):
 
    def __init__(self,bc,cd):
    
-       bc.add_header_node("REDIS_MONITORING","nano_data_center",properties={})
+       bc.add_header_node("REDIS_MONITORING","main_operations",properties={})
        
 
        

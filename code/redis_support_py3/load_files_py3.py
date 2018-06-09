@@ -48,10 +48,10 @@ class BASIC_FILES( object ):
         f = open(self.path + name, 'w')
         json_data = json.dumps(data)
         f.write(json_data)
-        self.hash_driver.hset( name,data)
+        self.hash_driver.hset( name,json_data)
 
     def load_file(self, name):
-        return self.hash_driver.hget(name)
+        return json.loads(self.hash_driver.hget(name))
  
 
 class APP_FILES( BASIC_FILES ):
@@ -116,28 +116,40 @@ if __name__ == "__main__":
            
            # now load files into redis
            key = "[SITE:"+j+"][FILE:"+i[1]+"]"
-           
-           old_fields = set(redis_handle.hkeys(key))
-           for l in files:
+           old_fields = redis_handle.hkeys(key) 
+           for field_name in files:
+               try:
+                   extension = field_name.split(".")[1]
+                   if extension != "json":
+                       continue
                
-               field_name = l.split(".")[0]
-               file_name = os.path.join(path,l)
-               file_handle = open(file_name,'r')
-               data = file_handle.read()
-               file_handle.close()
-               redis_site_data = json.loads(data)
-               pack_data = msgpack.packb(data,use_bin_type = True )
-               if redis_handle.hget(key,field_name) != pack_data:
-                   redis_handle.hset(key,field_name,pack_data)
-                   cloud_handler_tx.hset(forward,key,field_name,pack_data)
+                   file_name = os.path.join(path,field_name)
+                   file_handle = open(file_name,'r')
+                   data = file_handle.read()
+                   file_handle.close()
+                    
+                   pack_data = msgpack.packb(data,use_bin_type = True )
+                   redis_pack_data = redis_handle.hget(key,field_name)
+                   if redis_pack_data != None:
+                        redis_file_data = msgpack.unpackb(redis_pack_data,encoding='utf-8')
+                   else:
+                        redis_file_data = None
+                   if redis_file_data != data:
+                       redis_handle.hset(key,field_name,pack_data)
+                       cloud_handler_tx.hset(forward,key,field_name,pack_data)
+                   else:
+                       pass #print("file match",field_name)
+               except:
+                  raise
 
            new_fields = set(redis_handle.hkeys(key))
            # remove old keys
-           keys_to_delete = list(old_fields - new_fields)
-           for i in keys_to_delete:
-               print("deleteing fields")
-               redis_handle.hdel(key,i)
-               cloud_handler_tx.hdel(key,i)
+           fields_to_delete = set(old_fields)-set(new_fields)
+          
+           for m in list(fields_to_delete):
+               
+               redis_handle.hdel(key,m)
+               cloud_handler_tx.hdel(forward,key,m)
            
 
 else:

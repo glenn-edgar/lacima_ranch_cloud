@@ -31,7 +31,6 @@ class Construct_Controllers(object):
        cd.add_stream("FREE_CPU",depth=ONE_MONTH) # one month of data
        cd.add_stream("RAM",depth=ONE_MONTH)
        cd.add_stream("DISK_SPACE",depth=ONE_MONTH) # one month of data
-       cd.add_stream("TEMPERATURE",depth=ONE_MONTH)
        cd.add_stream("PROCESS_VSZ",depth=ONE_MONTH)
        cd.add_stream("PROCESS_RSS",depth=ONE_MONTH)
        cd.add_stream("PROCESS_STATE",depth=ONE_MONTH)

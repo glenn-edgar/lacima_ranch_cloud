@@ -195,8 +195,9 @@ class Job_Queue_Server( object ):
  
    def pop(self):
        pack_data = self.redis_handle.rpop(self.key)
-       if self.cloud_handler != None:
-          self.cloud_handler.rpop(self.data ,self.key)
+       if pack_data == None:
+           if self.cloud_handler != None:
+               self.cloud_handler.rpop(self.data ,self.key)
 
        if pack_data == None:
           return False, None
