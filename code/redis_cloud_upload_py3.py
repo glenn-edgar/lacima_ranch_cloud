@@ -40,12 +40,12 @@ class Redis_Cloud_Upload(object):
        self.tx_handler = Cloud_TX_Handler(self.redis_handle)
        self.packet_data = None
        self.topic = redis_site_data["mqtt_upload_topic_base"]
-       print("topic",self.topic)
+       #print("topic",self.topic)
        self.temp_queue = "__CLOUD_UPLOAD_TEMP_QUEUE__"
        self.do_start()
        
    def do_connect(self):
-      print("***************************connect state******************************************************")
+      #print("***************************connect state******************************************************")
       status = self.mqtt_client.connect()
       if status == True:
          self.state = "MONITOR"
@@ -54,20 +54,20 @@ class Redis_Cloud_Upload(object):
       
    def do_monitor(self):
        while True:
-           print("*****************monitor state*************",time.time())
+           #print("*****************monitor state*************",time.time())
            if self.packet_data == None:
               length = self.tx_handler.length()
-              print("length",length)
+              #print("length",length)
               if length == 0:
                   return
 
               self.packet_data = self.tx_handler.extract()
-              print(type(self.packet_data),self.packet_data)
+              #print(type(self.packet_data),self.packet_data)
               site = self.packet_data[0]
               self.packet_data[1] = zlib.compress(self.packet_data[1])
       
            payload = copy.deepcopy(self.packet_data)
-           
+           #print("topic",self.topic+payload[0])
            return_value = self.mqtt_client.publish(self.topic+payload[0],payload=payload[1],qos=2)
            
            if return_value[0] == True:
@@ -89,8 +89,8 @@ class Redis_Cloud_Upload(object):
            self.do_connect()
         else:
            self.do_monitor()
-           print("end monitor")
-        time.sleep(.5)
+           #print("end monitor")
+        time.sleep(.1)
         
 if __name__ == "__main__":
    file_handle = open("system_data_files/redis_server.json",'r')
