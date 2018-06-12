@@ -17,6 +17,7 @@ import json
 import msgpack
 import os
 import copy
+import re
 
 from py_cf_new_py3.chain_flow_py3 import CF_Base_Interpreter
 from redis_support_py3.graph_query_support_py3 import  Query_Support
@@ -34,7 +35,7 @@ from redis_support_py3.construct_data_handlers_py3 import Generate_Handlers
 #
 
 
-class PI_MONITOR( object ):
+class CLOUD_MONITOR( object ):
 
    def __init__( self, package_node,generate_handlers ):
        data_structures = package_node["data_structures"]
@@ -44,8 +45,30 @@ class PI_MONITOR( object ):
        self.ds_handlers["DISK_SPACE"]         = generate_handlers.construct_stream_writer(data_structures["DISK_SPACE"])
        self.ds_handlers["PROCESS_VSZ"]        = generate_handlers.construct_stream_writer(data_structures["PROCESS_VSZ"])
        self.ds_handlers["PROCESS_RSS"]        = generate_handlers.construct_stream_writer(data_structures["PROCESS_RSS"])
-       self.ds_handlers["PROCESS_STATE"]        = generate_handlers.construct_stream_writer(data_structures["PROCESS_STATE"])       
+       self.ds_handlers["PROCESS_STATE"]        = generate_handlers.construct_stream_writer(data_structures["PROCESS_STATE"])  
+       self.ds_handlers["CPU_CORE"]        = generate_handlers.construct_stream_writer(data_structures["CPU_CORE"])  
+       self.ds_handlers["SWAP_SPACE"]        = generate_handlers.construct_stream_writer(data_structures["SWAP_SPACE"])  
+       self.ds_handlers["IO_SPACE"]        = generate_handlers.construct_stream_writer(data_structures["IO_SPACE"])  
+       self.ds_handlers["BLOCK_DEV"]        = generate_handlers.construct_stream_writer(data_structures["BLOCK_DEV"])  
+       self.ds_handlers["CONTEXT_SWITCHES"]        = generate_handlers.construct_stream_writer(data_structures["CONTEXT_SWITCHES"])  
+       self.ds_handlers["RUN_QUEUE"]        = generate_handlers.construct_stream_writer(data_structures["RUN_QUEUE"])  
+       self.ds_handlers["DEV"]        = generate_handlers.construct_stream_writer(data_structures["DEV"])  
+       self.ds_handlers["SOCK"]        = generate_handlers.construct_stream_writer(data_structures["SOCK"])  
+       self.ds_handlers["TCP"]        = generate_handlers.construct_stream_writer(data_structures["TCP"])  
+       self.ds_handlers["UDP"]        = generate_handlers.construct_stream_writer(data_structures["UDP"])  
+
+
+       
        self.construct_chains()
+
+   def measure_temperature( self, *args ):
+      temp = os.popen("vcgencmd measure_temp").readline()
+    
+      temp = temp.replace("temp=","").replace("'C\n","")
+      temp = float(temp)
+      temp = (9.0/5.0*temp)+32.
+
+      return temp
 
 
    def measure_disk_space( self, *args ):
@@ -150,7 +173,7 @@ class PI_MONITOR( object ):
        return_value = {}
        f = os.popen("sar -u 60 1 ")
        data = f.readlines()
-       print("data",data)
+       f.close()
        fields = data[-1].split()
        for i in range(2,len(fields)):
            return_value[headers[i]] = float(fields[i])
@@ -160,6 +183,7 @@ class PI_MONITOR( object ):
        f = os.popen("cat /proc/meminfo ")
        
        data_list = f.readlines()
+       f.close()
        return_value = {}
        for i in data_list:
           items = i.split(":")
@@ -200,21 +224,120 @@ class PI_MONITOR( object ):
       data = self.measure_disk_space()     
       self.ds_handlers["DISK_SPACE"].push(data = data)
       return "DISABLE" 
+ 
+   def assemble_cpu_core(self,*args):
+       self.parse_multi_line("sar -P ALL 10 1","CPU_CORE",-1,2)
+       return "DISABLE" 
       
+   def assemble_swap_space(self,*args):
+       self.parse_one_line("sar -S 1 1","SWAP_SPACE",1)     
+       return "DISABLE" 
+      
+   def assemble_io_space(self,*args):
+        self.parse_one_line("sar -w 1 1","IO_SPACE",1)        
+        return "DISABLE" 
+      
+   def assemble_block_io(self,*args):
+        self.parse_multi_line("sar -d  3 1","BLOCK_DEV",-1,2)
+        return "DISABLE"       
+
+   def assemble_context_switches(self,*args):
+        self.parse_one_line("sar -w 1 1","CONTEXT_SWITCHES",1)   
+        return "DISABLE" 
+
+   def assemble_run_queue(self,*args):
+        self.parse_one_line("sar -q 3 1","RUN_QUEUE",1)   
+        return "DISABLE" 
+ 
+   def assemble_net_dev(self,*args):
+       self.parse_multi_line("sar -n DEV  3 1","DEV",-1,2)
+       return "DISABLE" 
+
+   def assemble_net_socket(self,*args):
+        self.parse_one_line("sar -n SOCK 3 1","SOCK",1)
+        return "DISABLE" 
+
+   def assemble_net_tcp(self,*args):
+        self.parse_one_line("sar -n TCP 3 1","TCP",1)
+        return "DISABLE" 
+        
+   def assemble_net_udp(self,*args):
+        self.parse_one_line("sar -n UDP 3 1","UDP",1)
+        return "DISABLE" 
+
+
+   def parse_multi_line(self,sar_command,stream_key,ref_index = -1,start_index = 1):
+   
+
+       f = os.popen(sar_command)
+       data = f.read()
+       f.close()
+       lines = data.split("\n")
+       i = 3
+       data = {}
+       while True:
+          line = lines[i]
+          if line == "":
+             break
+          line = re.sub(' +',' ',line)
+          fields = line.split(" ")
+          
+          key = fields[start_index]
+          value = fields[ref_index]
+          data[key] = float(float(value))
+          i = i+1
+
+       print("data",data)   
+       self.ds_handlers[stream_key].push(data = data)
+
+   def parse_one_line(self, sar_command, stream_field,start_index=0 ):
+        f = os.popen(sar_command)
+        data = f.read()
+        f.close()
+
+        lines = data.split("\n")
+        line = lines[2]
+        line = re.sub(' +',' ',line)
+        fields_keys = line.split(" ")
+        line = lines[3]
+        line = re.sub(' +',' ',line)
+        fields_data = line.split(" ")
+        fields_data.pop(0)
+        fields_keys.pop(0)
+        data = {}
+        for i in range(start_index,len(fields_keys)):
+           data[fields_keys[i]] = float(fields_data[i])
+       
+        print("data",data)
+          
+        self.ds_handlers[stream_field].push(data = data)
+ 
    def construct_chains(self,*args):
 
        cf = CF_Base_Interpreter()
-       cf.define_chain("pi_monitor", True)
+       cf.define_chain("cloud_monitor", True)
        cf.insert.log("starting processor measurements")
+
        cf.insert.one_step(self.assemble_free_cpu)
        cf.insert.one_step(self.assemble_ram)
-       
+      
        cf.insert.one_step(self.assemble_vsz)
        cf.insert.one_step(self.assemble_rss)
        cf.insert.one_step(self.assemble_process_state)
        cf.insert.one_step(self.assemble_disk_space)
+       cf.insert.one_step(self.assemble_cpu_core)
+       cf.insert.one_step(self.assemble_swap_space)
+       cf.insert.one_step(self.assemble_io_space)
+       cf.insert.one_step(self.assemble_block_io)
+
+       cf.insert.one_step(self.assemble_context_switches)
+       cf.insert.one_step(self.assemble_run_queue)
+       cf.insert.one_step(self.assemble_net_dev)
+       cf.insert.one_step(self.assemble_net_socket)
+       cf.insert.one_step(self.assemble_net_tcp)
+       cf.insert.one_step(self.assemble_net_udp)
        cf.insert.log("ending processor measurements")
-       cf.insert.wait_event_count( event = "MINUTE_TICK",count = 15)
+       cf.insert.wait_event_count( event = "HOUR_TICK",count = 1)
        cf.insert.reset()
        cf.execute()
         
@@ -231,6 +354,7 @@ if __name__ == "__main__":
    data = file_handle.read()
    file_handle.close()
    site_data = json.loads(data)
+   print(site_data)
 
   
    qs = Query_Support( redis_server_ip = site_data["host"], redis_server_port=site_data["port"], db = site_data["graph_db"] ) 
@@ -246,7 +370,7 @@ if __name__ == "__main__":
   
 
    generate_handlers = Generate_Handlers(package_nodes[0],site_data)
-   pi_monitor = PI_MONITOR(package_nodes[0],generate_handlers)
+   pi_monitor = CLOUD_MONITOR(package_nodes[0],generate_handlers)
    
    
 else:

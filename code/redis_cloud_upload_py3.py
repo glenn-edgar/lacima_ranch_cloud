@@ -57,9 +57,12 @@ class Redis_Cloud_Upload(object):
            print("*****************monitor state*************",time.time())
            if self.packet_data == None:
               length = self.tx_handler.length()
+              print("length",length)
               if length == 0:
                   return
+
               self.packet_data = self.tx_handler.extract()
+              print(type(self.packet_data),self.packet_data)
               site = self.packet_data[0]
               self.packet_data[1] = zlib.compress(self.packet_data[1])
       
