@@ -82,7 +82,9 @@ if __name__ == "__main__":
                                     redis_site_data["port"], 
                                     db=redis_site_data["redis_file_db"] )
    find_sites = Find_Sites(redis_site_data)
+   
    sites = find_sites.determine_sites()
+   print("sites",sites)
    cloud_handler_tx = Cloud_TX_Handler(redis_handle)
    forward = {"forward":True}  
    
@@ -99,12 +101,13 @@ if __name__ == "__main__":
    # no lets load the files in
    
    for i in file_directories:
+       print("file directory",i)
        for j in sites:
-           
+           print("site",j)
            path = os.path.join(i[0],j)
            
            raw_files = listdir(path)
-           
+           print("raw_files",path,raw_files)
            files = []
            for k in raw_files:
                
@@ -156,7 +159,7 @@ else:
    pass
 
 
-__TEST__= False
+__TEST__= True
 if __TEST__ == True:
    print("made it to test")
    app_file_handler = APP_FILES( redis_handle,"LaCima" )

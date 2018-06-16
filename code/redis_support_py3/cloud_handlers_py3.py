@@ -192,6 +192,7 @@ class Cloud_RX_Handler(object):
        self.redis_handle.rpop(data["key"])
        
    def stream_write(self,data ):
+       print("stream write data",data)
        self.redis_stream.xadd(key = data["key"], max_len= data["depth"],id=data["id"],data_dict=data["store_dictionary"] )
    
    
