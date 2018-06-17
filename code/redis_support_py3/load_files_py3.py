@@ -25,15 +25,16 @@ from .find_sites_py3 import Find_Sites
    
 class BASIC_FILES( object ):
     def __init__(self, redis_handle,path, site,label):
+        
         self.path = path
         self.site = site
-  
+        
         data = {}
         data["forward"] = True
         self.cloud_handler = Cloud_TX_Handler(redis_handle)
         self.redis_handle = redis_handle
         self.key = "[SITE:"+site+"][FILE:"+label+ "]"
-        # Changes to cloud files do not automatically propagate to slaves
+        
         self.hash_driver = Redis_Hash_Dictionary(self.redis_handle,data,self.key,self.cloud_handler)
 
     def file_directory(self):
@@ -51,6 +52,8 @@ class BASIC_FILES( object ):
         self.hash_driver.hset( name,json_data)
 
     def load_file(self, name):
+        
+        
         return json.loads(self.hash_driver.hget(name))
  
 
@@ -78,13 +81,14 @@ if __name__ == "__main__":
    
    find_site_data = Find_Redis_Site_Data()
    redis_site_data = find_site_data.find_site_data("system_data_files")
-   redis_handle = redis.StrictRedis(redis_site_data["host"], 
+   redis_handle = redis.Redis(redis_site_data["host"], 
                                     redis_site_data["port"], 
-                                    db=redis_site_data["redis_file_db"] )
+                                    db=redis_site_data["redis_file_db"])
+                                    
    find_sites = Find_Sites(redis_site_data)
    
    sites = find_sites.determine_sites()
-   print("sites",sites)
+   
    cloud_handler_tx = Cloud_TX_Handler(redis_handle)
    forward = {"forward":True}  
    
@@ -95,19 +99,19 @@ if __name__ == "__main__":
           try:
             
              os.mkdir(os.path.join(i[0],j))
-          except FileExistsError:
+          except :
              pass
 
    # no lets load the files in
    
    for i in file_directories:
-       print("file directory",i)
+       
        for j in sites:
-           print("site",j)
+           
            path = os.path.join(i[0],j)
            
            raw_files = listdir(path)
-           print("raw_files",path,raw_files)
+           
            files = []
            for k in raw_files:
                
@@ -120,8 +124,10 @@ if __name__ == "__main__":
            # now load files into redis
            key = "[SITE:"+j+"][FILE:"+i[1]+"]"
            old_fields = redis_handle.hkeys(key) 
+           
            for field_name in files:
                try:
+                  
                    extension = field_name.split(".")[1]
                    if extension != "json":
                        continue
@@ -131,12 +137,14 @@ if __name__ == "__main__":
                    data = file_handle.read()
                    file_handle.close()
                     
-                   pack_data = msgpack.packb(data,use_bin_type = True )
+                   pack_data = msgpack.packb(data, use_bin_type = True )
+                   
                    redis_pack_data = redis_handle.hget(key,field_name)
                    if redis_pack_data != None:
                         redis_file_data = msgpack.unpackb(redis_pack_data,encoding='utf-8')
                    else:
                         redis_file_data = None
+                   
                    if redis_file_data != data:
                        redis_handle.hset(key,field_name,pack_data)
                        cloud_handler_tx.hset(forward,key,field_name,pack_data)
@@ -144,7 +152,7 @@ if __name__ == "__main__":
                        pass #print("file match",field_name)
                except:
                   raise
-
+               
            new_fields = set(redis_handle.hkeys(key))
            # remove old keys
            fields_to_delete = set(old_fields)-set(new_fields)
@@ -159,14 +167,21 @@ else:
    pass
 
 
-__TEST__= True
+__TEST__= False
 if __TEST__ == True:
    print("made it to test")
    app_file_handler = APP_FILES( redis_handle,"LaCima" )
    sys_file_handler = SYS_FILES( redis_handle,"LaCima")
    print(app_file_handler.file_directory())
    directory_list = app_file_handler.file_directory()
-   print(app_file_handler.load_file(directory_list[0]))
+   for i in directory_list:
+       app_file_handler.load_file(i)
+
+   print(sys_file_handler.file_directory())
+   directory_list =sys_file_handler.file_directory()
+   for i in directory_list:
+       sys_file_handler.load_file(i)
+  
 else:
    pass
    

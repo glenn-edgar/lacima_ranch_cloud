@@ -1,7 +1,8 @@
-import base64
+
 import redis
 import msgpack
 import json
+import zlib
 from .redis_stream_utilities_py3 import Redis_Stream
 
 class Send_Object(object):
@@ -13,12 +14,22 @@ class Send_Object(object):
        
 
 
-   def send(self,action, **kwargs):
-       kwargs["ACTION"] = action
-       kwargs_pack = msgpack.packb(kwargs, use_bin_type = True)       
+   def send(self,action, key,field,data):
+       temp = {}
+       temp["key"] = key
+       temp["field"] = field
+       temp["data"] = data
+       temp["ACTION"] = action     
+       print("Cloud TX -- action",temp)
+      
+       kwargs_pack = msgpack.packb(temp, use_bin_type = True)
+       
+
        self.redis_handle.lpush(self.transport_queue,kwargs_pack )
        self.redis_handle.ltrim(self.transport_queue, 0,self.queue_depth)
        
+       
+
    def length(self):
        return self.redis_handle.llen(self.transport_queue)
    
@@ -29,13 +40,18 @@ class Send_Object(object):
 
        
    def extract(self):
+ 
+       
        length = self.redis_handle.llen(self.transport_queue)
        if length == 0:
           return []
-       packed_data = self.redis_handle.rpop(self.transport_queue)
        
-       unpacked_data = msgpack.unpackb(packed_data, encoding='utf-8')
-       site = self.determine_site(unpacked_data["key"])
+       packed_data = self.redis_handle.rpop(self.transport_queue)
+       unpacked_data = msgpack.unpackb(packed_data,encoding='utf-8' )
+       
+       
+       site = self.determine_site(unpacked_data['key'])
+       
        return [site,packed_data]
 
  
@@ -127,7 +143,6 @@ class Cloud_RX_Handler(object):
       for i_pack in list_data:
           
           i = msgpack.unpackb(i_pack, encoding='utf-8')
-
           i["SITE"] = site
           action = i["ACTION"]
           print("download",i)
@@ -171,8 +186,8 @@ class Cloud_RX_Handler(object):
                path = self.file_path[self.file_type]+data["SITE"]+"/"
                file = data["field"]
                temp_data = msgpack.unpackb(data["data"], encoding='utf-8')
-          
-               self.save_raw_file(path,file,json.dumps(temp_data))
+               
+               self.save_raw_file(path,file,temp_data)
        
    def hdel(self,data):
       self.redis_handle.hdel(data["key"],data["field"] )
@@ -202,41 +217,4 @@ class Cloud_RX_Handler(object):
     
 
 if __name__ == "__main__":
-    redis_handle = redis.StrictRedis(  db=10 , decode_responses=True)
-    redis_handle.flushdb()
-    cloud_rx =  Cloud_RX_Handler(redis_handle)
-    cloud_tx = Cloud_TX_Handler(redis_handle)
-    
-    data_1 = json.dumps({"data":1})   
-    data_2 = json.dumps({"data":2})
-    data_3 = json.dumps({"data":3})
-    data_4 = json.dumps({"data":41})
-    data_5 = json.dumps({"data":5})
-    data_6 = json.dumps({"data":6})
-    
-    dict_1 = {"data":7}
-    
-    cloud_tx.hset("hash_test","field_1",data_1)
-    cloud_tx.hset("hash_test","field_2",data_2)
-    cloud_tx.hdel("hash_test","field_1")
-    cloud_tx.lpush(10,"job_queue_test", data_3)
-    cloud_tx.lpush( 10,"job_queue_test", data_4) 
-    cloud_tx.lpush( 10,"job_queue_test", data_5) 
-    cloud_tx.list_delete( "job_queue_test",1)    
-    cloud_tx.rpop("job_queue_test")
-    cloud_tx.stream_write(10, "*", "stream_test",  dict_1 )
-    cloud_tx.stream_list_write(10,"stream_list_test", data_6 )
-    #
-    # Read transport list
-    # 
-    remote_length = redis_handle.llen("_TRANSPORT_QUEUE_")
-    remote_list = []
-    for i in range(0,remote_length):
-        remote_list.append(redis_handle.lpop("_TRANSPORT_QUEUE_"))
-        
-  
-    
-    remote_list.reverse()
- 
-    cloud_rx.unpack_remote_data(remote_list)    
-  
+  pass

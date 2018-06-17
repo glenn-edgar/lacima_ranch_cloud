@@ -3,12 +3,12 @@
 #
 import json
 import msgpack
-import base64
+
 import redis
 import time
 import copy
 import zlib
-import time
+
 
 
 
@@ -18,12 +18,16 @@ import ssl
 from redis_support_py3.cloud_handlers_py3 import Cloud_TX_Handler
 from redis_support_py3.mqtt_client_py3 import MQTT_CLIENT
 
+from redis_support_py3.load_files_py3 import APP_FILES 
+from redis_support_py3.load_files_py3 import SYS_FILES 
 
 
 class Redis_Cloud_Upload(object):
 
-   def __init__(self,redis_site_data):
-       self.redis_site_data = redis_site_data
+   def __init__(self,redis_site_data,redis_handle):
+ 
+       self.redis_handle = redis_handle                                     
+       
        self.mqtt_client = MQTT_CLIENT(redis_site_data,
                                       redis_site_data["mqtt_cloud_server"],
                                       redis_site_data["mqtt_cloud_port"],
@@ -32,12 +36,14 @@ class Redis_Cloud_Upload(object):
                                       certfile= "../mosquitto/certs/server.crt", 
                                       keyfile= "../mosquitto/certs/server.key", 
                                       cert_reqs=ssl.CERT_NONE )
-       
-       self.redis_handle = redis.StrictRedis(redis_site_data["host"], 
-                                            redis_site_data["port"], 
-                                            db=redis_site_data["redis_io_db"] )
-       self.state = "CONNECT"
+     
+       self.redis_site_data = redis_site_data
+                                           
        self.tx_handler = Cloud_TX_Handler(self.redis_handle)
+  
+       
+       self.state = "CONNECT"
+       
        self.packet_data = None
        self.topic = redis_site_data["mqtt_upload_topic_base"]
        #print("topic",self.topic)
@@ -54,10 +60,10 @@ class Redis_Cloud_Upload(object):
       
    def do_monitor(self):
        while True:
-           #print("*****************monitor state*************",time.time())
+           print("*****************monitor state*************",time.time())
            if self.packet_data == None:
               length = self.tx_handler.length()
-              #print("length",length)
+              print("length",length)
               if length == 0:
                   return
 
@@ -98,5 +104,9 @@ if __name__ == "__main__":
    file_handle.close()
       
    redis_site_data = json.loads(data)
-   Redis_Cloud_Upload(redis_site_data)
+   redis_handle = redis.Redis(redis_site_data["host"], 
+                                    redis_site_data["port"], 
+                                    db=redis_site_data["redis_file_db"])
+
+   Redis_Cloud_Upload(redis_site_data,redis_handle)
         

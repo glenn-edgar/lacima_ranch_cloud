@@ -327,7 +327,7 @@ class Stream_Writer(Redis_Stream):
        self.xadd(key = self.key, max_len=self.depth,id=id,data_dict=out_data )
 
        if self.cloud_handler != None:
-           self.cloud_handler.stream_write(self.data,id, self.depth, self.key, out_data ) 
+           self.cloud_handler.stream_write(self.data, self.depth,id ,self.key, out_data ) 
        
    
       
@@ -374,7 +374,7 @@ class Generate_Handlers(object):
    def __init__(self,package,site_data  ):
        self.site_data = site_data
        self.package = package
-       self.redis_handle = redis.StrictRedis( host = site_data["host"] , port=site_data["port"], db=site_data["redis_io_db"] ) #, decode_responses=True)
+       self.redis_handle = redis.StrictRedis( host = site_data["host"] , port=site_data["port"], db=site_data["redis_io_db"] ) 
        self.cloud_handler = Cloud_TX_Handler(self.redis_handle) 
        
    def get_redis_handle(self):
