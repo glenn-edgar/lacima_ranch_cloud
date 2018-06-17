@@ -14,15 +14,9 @@ class Send_Object(object):
        
 
 
-   def send(self,action, key,field,data):
-       temp = {}
-       temp["key"] = key
-       temp["field"] = field
-       temp["data"] = data
-       temp["ACTION"] = action     
-       print("Cloud TX -- action",temp)
-      
-       kwargs_pack = msgpack.packb(temp, use_bin_type = True)
+   def send(self,action,**kwargs):
+       kwargs["ACTION"] = action      
+       kwargs_pack = msgpack.packb(kwargs, use_bin_type = True)
        
 
        self.redis_handle.lpush(self.transport_queue,kwargs_pack )

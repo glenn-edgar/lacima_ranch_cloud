@@ -37,6 +37,11 @@ class BASIC_FILES( object ):
         
         self.hash_driver = Redis_Hash_Dictionary(self.redis_handle,data,self.key,self.cloud_handler)
 
+    def file_exists(self,name):
+        print("self.path",self.path+self.site+"/",name,isfile(self.path+name))
+        return isfile(self.path+self.site+"/"+name)
+
+
     def file_directory(self):
         return self.hash_driver.hkeys()
 
@@ -46,14 +51,15 @@ class BASIC_FILES( object ):
     
         
     def save_file(self, name, data):
-        f = open(self.path + name, 'w')
+        print("saving file")
+        f = open(self.path+self.site+"/" + name, 'w')
         json_data = json.dumps(data)
         f.write(json_data)
         self.hash_driver.hset( name,json_data)
 
     def load_file(self, name):
         
-        
+        print("******************name",name,self.key)
         return json.loads(self.hash_driver.hget(name))
  
 

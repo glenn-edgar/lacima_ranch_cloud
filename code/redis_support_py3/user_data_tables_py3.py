@@ -16,12 +16,14 @@ import json
 
 class Generate_Table_Handlers(object):
 
-   def __init__(self,site_data):
+   def __init__(self,site_data,site):
        self.site_data = site_data   
-      
-       self.redis_handle = redis.StrictRedis( host = site_data["host"] , port=site_data["port"], db=site_data["redis_table_db"] )
-       self.prefix = "[SITE:"+site_data["site"]+"][TABLE_DATA:"
+       self.site = site
+       self.redis_handle = redis.Redis( host = site_data["host"] , port=site_data["port"], db=site_data["redis_table_db"] )
+       self.prefix = "[SITE:"+site+"][TABLE_DATA:"
        self.cloud_handler = Cloud_TX_Handler(self.redis_handle) 
+  
+
        
    def get_redis_handle(self):
        return self.redis_handle   
@@ -166,14 +168,15 @@ class System_Scheduling(object):
   
 class User_Data_Tables(object):
 
-   def __init__(self, redis_site_data ):
+   def __init__(self, redis_site_data,site ):
+       self.site = site
        self.backup_db     = redis_site_data["redis_backup_db"]
        self.redis_site_data = redis_site_data
-       self.table_handler = Generate_Table_Handlers( redis_site_data )
+       self.table_handler = Generate_Table_Handlers( redis_site_data,site )
        self.redis_handle = self.table_handler.get_redis_handle()
 
-       self.app_file_handle = APP_FILES( self.redis_handle,self.redis_site_data )
-       self.sys_filie_handle = SYS_FILES( self.redis_handle,self.redis_site_data)
+       self.app_file_handle = APP_FILES( self.redis_handle,site )
+       self.sys_filie_handle = SYS_FILES( self.redis_handle,site)
        
        self.valve_resistance_data = Valve_Resistance_Data(self.table_handler)
        self.system_scheduling = System_Scheduling(self.table_handler)
@@ -193,6 +196,10 @@ class User_Data_Tables(object):
        # the eto_site table may have changed
        # need to merge old table values into the new table
        # there may be insertions as well as deletions
+       if self.app_file_handle.file_exists("sprinkler_ctrl.json") == False:
+          return
+
+
        eto_file_data = self.app_file_handle.load_file("eto_site_setup.json")
        
 
@@ -230,6 +237,10 @@ class User_Data_Tables(object):
            
    def initialize_valve_resistance_streams(self):
    
+       if self.app_file_handle.file_exists("sprinkler_ctrl.json") == False:
+          return
+
+
        valve_map = self.valve_resistance_data.get_valve_map()
        valve_map.delete_all()
        
@@ -277,6 +288,9 @@ class User_Data_Tables(object):
    def initialize_irrigation_streams(self):    
        schedule_dictionary = {}
 
+       if self.app_file_handle.file_exists("sprinkler_ctrl.json") == False:
+          return
+
        sprinkler_ctrl = self.app_file_handle.load_file("sprinkler_ctrl.json")
 
        for j in sprinkler_ctrl:
@@ -313,5 +327,5 @@ if __name__ == "__main__":
     data = file_handle.read()
     file_handle.close()
     redis_site_data = json.loads(data)
-    user_data = User_Data_Tables(redis_site_data)
+    user_data = User_Data_Tables(redis_site_data,"LaCima")
     user_data.initialize()    
