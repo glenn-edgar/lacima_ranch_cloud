@@ -9,7 +9,8 @@ from py_cf_new_py3.chain_flow_py3 import CF_Base_Interpreter
 from redis_support_py3.graph_query_support_py3 import  Query_Support
 from redis_support_py3.construct_data_handlers_py3 import Generate_Handlers
 import msgpack
-import pickle
+import zlib
+
 
 class Process_Control(object ):
 
@@ -31,7 +32,7 @@ class Process_Control(object ):
    def launch_process(self,command_string,stderr=None,shell=True):
        command_parameters = shlex.split(command_string)
        try:
-
+           #print("launching process",command_parameters)
            process_handle = Popen(command_parameters, stderr=open(self.error_file,'w' ))
            return [ True, process_handle ]  
        except:
@@ -41,10 +42,12 @@ class Process_Control(object ):
    
    def monitor_process(self, process_handle):
        returncode = process_handle.poll()
-     
+      
        if returncode == None:
           return [ True, 0]
        else:
+          process_handle.kill()
+          process_handle.wait()
          
           del process_handle
           return [ False, returncode ]
@@ -147,7 +150,7 @@ class System_Control(object):
  
        self.startup_list = []
        self.process_hash = {}
-      
+       
        for command in self.command_list:
           temp_class = Manage_A_Python_Process( command_string = command["file"], restart_flag = command["restart"] )
           python_script = temp_class.get_script()
@@ -168,8 +171,17 @@ class System_Control(object):
            temp = self.process_hash[script]
            temp.launch()
            if temp.error == True:
-               
-               self.self.ds_handlers["ERROR_STREAM"].push( data = { "script": script, "error_file" : temp.temp.error_file_rollover} )
+               print("process has died",script)
+               with open(temp.error_file_rollover, 'r') as myfile:
+                     data=myfile.read()
+               if data != None:
+                    data = data.encode()
+                    crc = zlib.crc32(data)
+                    data = zlib.compress(data)
+               else:
+                    crc = 0
+                    data = ""
+               self.self.ds_handlers["ERROR_STREAM"].push( data = { "script": script,"crc":crc, "error_output" : data } )
                temp.error = False
 
    
@@ -184,8 +196,15 @@ class System_Control(object):
                print("process has died",script)
                with open(temp.error_file_rollover, 'r') as myfile:
                      data=myfile.read()
-              
-               self.ds_handlers["ERROR_STREAM"].push( data = { "script": script, "error_output" : data })
+               if data != None:
+                    data = data.encode()
+                    crc = zlib.crc32(data)
+                    data = zlib.compress(data)
+               else:
+                    crc = 0
+                    data = ""
+               
+               self.ds_handlers["ERROR_STREAM"].push( data = { "script": script,"crc":crc, "error_output" : data })
                temp.rollover_flag = False
       
        self.update_web_display()

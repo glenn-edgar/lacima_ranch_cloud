@@ -60,10 +60,10 @@ class Redis_Cloud_Upload(object):
       
    def do_monitor(self):
        while True:
-           print("*****************monitor state*************",time.time())
+           #print("*****************monitor state*************",time.time())
            if self.packet_data == None:
               length = self.tx_handler.length()
-              print("length",length)
+              #print("length",length)
               if length == 0:
                   return
 
@@ -80,7 +80,7 @@ class Redis_Cloud_Upload(object):
                 self.packet_data = None
            
            else:
-              print("*********************************** bad publish **************")
+              #print("*********************************** bad publish **************")
               self.mqtt_client.disconnect()
               time.sleep(5)
               self.mqtt_client = MQTT_CLIENT(self.redis_site_data,redis_site_data["mqtt_cloud_server"],redis_site_data["mqtt_cloud_port"],"remote","mosquitto_cloud")
