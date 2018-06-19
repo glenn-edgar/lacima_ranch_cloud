@@ -21,10 +21,11 @@ import sys
 from rabbitmq_client             import *
 from station_control             import *
 
-
+redis_handle_pw                 = redis.StrictRedis( host = "localhost", port=6379, db = 5 ) 
 redis_handle                 = redis.StrictRedis( host = "localhost", port=6379, db = 2 )   
+
 rabbit_vhost   = sys.argv[1]
-startup_dict = redis_handle.hgetall(rabbit_vhost)
+startup_dict = redis_handle_pw.hgetall(rabbit_vhost)
 rabbit_username           = startup_dict["rabbit_username"]
 rabbit_password           = startup_dict["rabbit_password"]
 rabbit_port               = int(startup_dict["rabbit_port"])
