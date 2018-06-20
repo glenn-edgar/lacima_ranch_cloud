@@ -1,12 +1,6 @@
 #!/bin/bash
 #  python initialization scripts
-cd  /home/gedgar
-python3  passwords.py
-cd new_python/code
-python3 -m redis_support_py3.construct_graph_py3 
-echo "construct graph"
-python3 -m redis_support_py3.load_files_py3 
-echo "load files" 
-python3 -m redis_support_py3.user_data_tables_py3 
-echo "user data tables" 
+python3 process_initialization_py3.py /home/gedgar/passwords.py "-m redis_support_py3.construct_graph_py3" "-m redis_support_py3.load_files_py3"
 ./process_control_py3.bsh
+
+

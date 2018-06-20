@@ -16,6 +16,9 @@ class Construct_Controllers(object):
        properties["command_list"].append( { "file":"mqtt_redis_gateway_py3.py","restart":True })
        bc.add_header_node("PROCESSOR","lacima_cloud",properties=properties)
        
+       properties["command_list"] =[]
+ 
+       bc.add_info_node("PROCESS_INITIALIZATION","nano_data_center",properties=properties)
 
        
        cd.construct_package("DATA_STRUCTURES")      
